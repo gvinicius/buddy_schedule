@@ -20,7 +20,7 @@ use axum::{
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -96,6 +96,7 @@ pub fn build_router(state: AppState) -> Router {
                     post(apply_template),
                 ),
         )
+        .fallback_service(ServeDir::new("web"))
         .with_state(state)
         .layer(cors)
         .layer(TraceLayer::new_for_http())

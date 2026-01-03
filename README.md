@@ -4,6 +4,7 @@ A Rust-based schedule management API for managing shifts, schedules, and rotatio
 
 ## Features
 
+- **Web Frontend**: Modern web interface using WebAssembly and WebGL with fallbacks
 - **JWT Authentication**: Secure token-based authentication
 - **Schedules**: Create and manage schedules for subjects (person/family/pet/etc)
 - **Roles**: 
@@ -16,6 +17,7 @@ A Rust-based schedule management API for managing shifts, schedules, and rotatio
 ## Prerequisites
 
 - Rust (latest stable version)
+- wasm-pack (for building WASM frontend) - will be installed automatically if missing
 - Podman or Docker (for database)
 - PostgreSQL client tools (optional, for direct database access)
 
@@ -61,13 +63,26 @@ export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/buddy_schedule
 sqlx migrate run
 ```
 
-### 5. Run the application
+### 5. Build the web frontend (WASM)
+
+```bash
+make build-web
+# or manually:
+cd web-frontend && ./build.sh
+```
+
+### 6. Run the application
 
 ```bash
 cargo run
+# or use make:
+make run
 ```
 
-The API will be available at `http://localhost:8080`
+The application will be available at `http://localhost:8080`
+- Web UI: `http://localhost:8080/`
+- API: `http://localhost:8080/api/*`
+- Health check: `http://localhost:8080/healthz`
 
 ## API Quick Start
 
@@ -95,6 +110,27 @@ curl -X POST http://localhost:8080/api/schedules \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"Care Rota","subject_type":"pet","subject_name":"Puppy"}'
 ```
+
+## Web Frontend
+
+The web frontend uses:
+- **WebAssembly (WASM)**: Rust compiled to WASM for high-performance client-side logic
+- **WebGL**: Hardware-accelerated rendering with Canvas 2D fallback
+- **Progressive Enhancement**: Falls back gracefully if WASM or WebGL are not available
+
+The frontend automatically:
+- Detects WASM support and loads the compiled module if available
+- Falls back to pure JavaScript if WASM is not supported
+- Uses WebGL2/WebGL1 for rendering, with Canvas 2D as fallback
+- Works in all modern browsers
+
+### Building the Frontend
+
+```bash
+make build-web
+```
+
+This compiles the Rust frontend code to WASM and places it in `web/pkg/`.
 
 ## Development
 
