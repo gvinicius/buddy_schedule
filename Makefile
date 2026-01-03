@@ -48,3 +48,9 @@ fmt:
 
 run:
 	@cargo run
+
+build-web:
+	@echo "Building WASM frontend..."
+	@cd web-frontend && ./build.sh
+
+dev: build-web run

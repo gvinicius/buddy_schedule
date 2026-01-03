@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buddy Schedule</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Buddy Schedule</h1>
+            <div id="auth-status">
+                <span id="user-email"></span>
+                <button id="logout-btn" style="display: none;">Logout</button>
+            </div>
+        </header>
+
+        <div id="login-screen" class="screen">
+            <div class="login-container">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <input type="email" id="login-email" placeholder="Email" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                    <button type="submit">Login</button>
+                </form>
+                <p>Don't have an account? <a href="#" id="show-register">Register</a></p>
+            </div>
+        </div>
+
+        <div id="register-screen" class="screen" style="display: none;">
+            <div class="login-container">
+                <h2>Register</h2>
+                <form id="register-form">
+                    <input type="email" id="register-email" placeholder="Email" required>
+                    <input type="password" id="register-password" placeholder="Password (min 8 chars)" required minlength="8">
+                    <button type="submit">Register</button>
+                </form>
+                <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+            </div>
+        </div>
+
+        <div id="main-screen" class="screen" style="display: none;">
+            <nav id="sidebar">
+                <h3>Schedules</h3>
+                <button id="new-schedule-btn">+ New Schedule</button>
+                <ul id="schedule-list"></ul>
+            </nav>
+
+            <main id="content">
+                <canvas id="render-canvas"></canvas>
+                <div id="schedule-view" style="display: none;">
+                    <h2 id="schedule-name"></h2>
+                    <div id="schedule-info"></div>
+                    <div id="shifts-container"></div>
+                </div>
+            </main>
+        </div>
+
+        <div id="error-message" class="error" style="display: none;"></div>
+    </div>
+
+    <script type="module" src="/static/app.js"></script>
+</body>
+</html>
