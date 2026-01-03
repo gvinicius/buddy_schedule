@@ -1,0 +1,34 @@
+[package]
+name = "buddy-schedule-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7.9", features = ["macros", "json"] }
+axum-extra = { version = "0.9.6", features = ["typed-header"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+dotenvy = "0.15.7"
+jsonwebtoken = "9.3.0"
+rand = "0.8.5"
+serde = { version = "1.0.216", features = ["derive"] }
+serde_json = "1.0.134"
+thiserror = "2.0.9"
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "signal"] }
+tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["cors", "trace"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+uuid = { version = "1.11.0", features = ["serde", "v4"] }
+async-trait = "0.1.85"
+
+sqlx = { version = "0.8.2", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "migrate"] }
+argon2 = "0.5.3"
+password-hash = "0.5.0"
+base64ct = "=1.6.0"
+home = "=0.5.11"
+url = "=2.5.0"
+crc = "=3.2.1"
+
+[dev-dependencies]
+http-body-util = "0.1.2"
+tower = { version = "0.5.2", features = ["util"] }
