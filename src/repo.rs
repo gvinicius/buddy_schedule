@@ -1,6 +1,9 @@
 use crate::{
     error::{AppError, AppResult},
-    models::{Period, RotationTemplate, Schedule, ScheduleRole, ScheduleWithRole, Shift, ShiftComment, User},
+    models::{
+        Period, RotationTemplate, Schedule, ScheduleRole, ScheduleWithRole, Shift, ShiftComment,
+        User,
+    },
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -60,12 +63,35 @@ pub trait Repo: Send + Sync {
     async fn create_schedule(&self, ns: NewSchedule) -> AppResult<Schedule>;
     async fn list_schedules_for_user(&self, user_id: Uuid) -> AppResult<Vec<ScheduleWithRole>>;
     async fn get_schedule(&self, schedule_id: Uuid) -> AppResult<Option<Schedule>>;
-    async fn get_schedule_role(&self, schedule_id: Uuid, user_id: Uuid) -> AppResult<Option<ScheduleRole>>;
-    async fn add_member(&self, schedule_id: Uuid, user_id: Uuid, role: ScheduleRole) -> AppResult<()>;
-    async fn set_member_role(&self, schedule_id: Uuid, user_id: Uuid, role: ScheduleRole) -> AppResult<()>;
+    async fn get_schedule_role(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+    ) -> AppResult<Option<ScheduleRole>>;
+    async fn list_schedule_members(
+        &self,
+        schedule_id: Uuid,
+    ) -> AppResult<Vec<(User, ScheduleRole)>>;
+    async fn add_member(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+        role: ScheduleRole,
+    ) -> AppResult<()>;
+    async fn set_member_role(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+        role: ScheduleRole,
+    ) -> AppResult<()>;
 
     async fn create_shift(&self, ns: NewShift) -> AppResult<Shift>;
-    async fn list_shifts(&self, schedule_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> AppResult<Vec<Shift>>;
+    async fn list_shifts(
+        &self,
+        schedule_id: Uuid,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> AppResult<Vec<Shift>>;
     async fn get_shift(&self, shift_id: Uuid) -> AppResult<Option<Shift>>;
     async fn assign_shift(&self, shift_id: Uuid, assigned_user_id: Option<Uuid>) -> AppResult<()>;
 
@@ -155,11 +181,12 @@ impl Repo for PgRepo {
     }
 
     async fn get_user(&self, user_id: Uuid) -> AppResult<Option<User>> {
-        let row = sqlx::query("select id, email, is_superadmin, created_at from app_user where id = $1")
-            .bind(user_id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|_| AppError::Internal)?;
+        let row =
+            sqlx::query("select id, email, is_superadmin, created_at from app_user where id = $1")
+                .bind(user_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|_| AppError::Internal)?;
 
         Ok(row.map(|r| User {
             id: r.get("id"),
@@ -188,12 +215,14 @@ impl Repo for PgRepo {
         .map_err(|_| AppError::Internal)?;
 
         // creator becomes admin member
-        sqlx::query("insert into schedule_member (schedule_id, user_id, role) values ($1, $2, 'admin')")
-            .bind(id)
-            .bind(ns.created_by)
-            .execute(&self.pool)
-            .await
-            .map_err(|_| AppError::Internal)?;
+        sqlx::query(
+            "insert into schedule_member (schedule_id, user_id, role) values ($1, $2, 'admin')",
+        )
+        .bind(id)
+        .bind(ns.created_by)
+        .execute(&self.pool)
+        .await
+        .map_err(|_| AppError::Internal)?;
 
         Ok(Schedule {
             id: row.get("id"),
@@ -258,13 +287,18 @@ impl Repo for PgRepo {
         }))
     }
 
-    async fn get_schedule_role(&self, schedule_id: Uuid, user_id: Uuid) -> AppResult<Option<ScheduleRole>> {
-        let row = sqlx::query("select role from schedule_member where schedule_id = $1 and user_id = $2")
-            .bind(schedule_id)
-            .bind(user_id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|_| AppError::Internal)?;
+    async fn get_schedule_role(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+    ) -> AppResult<Option<ScheduleRole>> {
+        let row =
+            sqlx::query("select role from schedule_member where schedule_id = $1 and user_id = $2")
+                .bind(schedule_id)
+                .bind(user_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|_| AppError::Internal)?;
 
         Ok(match row {
             None => None,
@@ -275,7 +309,47 @@ impl Repo for PgRepo {
         })
     }
 
-    async fn add_member(&self, schedule_id: Uuid, user_id: Uuid, role: ScheduleRole) -> AppResult<()> {
+    async fn list_schedule_members(
+        &self,
+        schedule_id: Uuid,
+    ) -> AppResult<Vec<(User, ScheduleRole)>> {
+        let rows = sqlx::query(
+            r#"
+            select u.id, u.email, u.is_superadmin, u.created_at, sm.role
+            from schedule_member sm
+            join app_user u on u.id = sm.user_id
+            where sm.schedule_id = $1
+            order by sm.created_at
+            "#,
+        )
+        .bind(schedule_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|_| AppError::Internal)?;
+
+        let mut out = Vec::with_capacity(rows.len());
+        for r in rows {
+            let role_str: String = r.get("role");
+            let role = ScheduleRole::try_from(role_str.as_str()).map_err(|_| AppError::Internal)?;
+            out.push((
+                User {
+                    id: r.get("id"),
+                    email: r.get("email"),
+                    is_superadmin: r.get("is_superadmin"),
+                    created_at: r.get("created_at"),
+                },
+                role,
+            ));
+        }
+        Ok(out)
+    }
+
+    async fn add_member(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+        role: ScheduleRole,
+    ) -> AppResult<()> {
         let role = role.as_str();
         sqlx::query("insert into schedule_member (schedule_id, user_id, role) values ($1, $2, $3)")
             .bind(schedule_id)
@@ -294,15 +368,22 @@ impl Repo for PgRepo {
         Ok(())
     }
 
-    async fn set_member_role(&self, schedule_id: Uuid, user_id: Uuid, role: ScheduleRole) -> AppResult<()> {
+    async fn set_member_role(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+        role: ScheduleRole,
+    ) -> AppResult<()> {
         let role = role.as_str();
-        let res = sqlx::query("update schedule_member set role = $3 where schedule_id = $1 and user_id = $2")
-            .bind(schedule_id)
-            .bind(user_id)
-            .bind(role)
-            .execute(&self.pool)
-            .await
-            .map_err(|_| AppError::Internal)?;
+        let res = sqlx::query(
+            "update schedule_member set role = $3 where schedule_id = $1 and user_id = $2",
+        )
+        .bind(schedule_id)
+        .bind(user_id)
+        .bind(role)
+        .execute(&self.pool)
+        .await
+        .map_err(|_| AppError::Internal)?;
         if res.rows_affected() == 0 {
             return Err(AppError::NotFound);
         }
@@ -342,7 +423,12 @@ impl Repo for PgRepo {
         })
     }
 
-    async fn list_shifts(&self, schedule_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> AppResult<Vec<Shift>> {
+    async fn list_shifts(
+        &self,
+        schedule_id: Uuid,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> AppResult<Vec<Shift>> {
         let rows = sqlx::query(
             r#"
             select id, schedule_id, starts_at, ends_at, period, assigned_user_id, created_by, created_at
@@ -637,7 +723,11 @@ impl Repo for MemRepo {
             .cloned())
     }
 
-    async fn get_schedule_role(&self, schedule_id: Uuid, user_id: Uuid) -> AppResult<Option<ScheduleRole>> {
+    async fn get_schedule_role(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+    ) -> AppResult<Option<ScheduleRole>> {
         Ok(self
             .state
             .read()
@@ -647,7 +737,29 @@ impl Repo for MemRepo {
             .copied())
     }
 
-    async fn add_member(&self, schedule_id: Uuid, user_id: Uuid, role: ScheduleRole) -> AppResult<()> {
+    async fn list_schedule_members(
+        &self,
+        schedule_id: Uuid,
+    ) -> AppResult<Vec<(User, ScheduleRole)>> {
+        let s = self.state.read().unwrap();
+        let mut out = Vec::new();
+        for ((sid, uid), role) in s.members.iter() {
+            if *sid != schedule_id {
+                continue;
+            }
+            if let Some((user, _)) = s.users.get(uid) {
+                out.push((user.clone(), *role));
+            }
+        }
+        Ok(out)
+    }
+
+    async fn add_member(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+        role: ScheduleRole,
+    ) -> AppResult<()> {
         let mut s = self.state.write().unwrap();
         let key = (schedule_id, user_id);
         if s.members.contains_key(&key) {
@@ -657,7 +769,12 @@ impl Repo for MemRepo {
         Ok(())
     }
 
-    async fn set_member_role(&self, schedule_id: Uuid, user_id: Uuid, role: ScheduleRole) -> AppResult<()> {
+    async fn set_member_role(
+        &self,
+        schedule_id: Uuid,
+        user_id: Uuid,
+        role: ScheduleRole,
+    ) -> AppResult<()> {
         let mut s = self.state.write().unwrap();
         let key = (schedule_id, user_id);
         if !s.members.contains_key(&key) {
@@ -684,7 +801,12 @@ impl Repo for MemRepo {
         Ok(shift)
     }
 
-    async fn list_shifts(&self, schedule_id: Uuid, from: DateTime<Utc>, to: DateTime<Utc>) -> AppResult<Vec<Shift>> {
+    async fn list_shifts(
+        &self,
+        schedule_id: Uuid,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> AppResult<Vec<Shift>> {
         let s = self.state.read().unwrap();
         let mut out: Vec<_> = s
             .shifts

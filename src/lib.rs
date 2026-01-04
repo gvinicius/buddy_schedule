@@ -7,7 +7,7 @@ pub mod repo;
 use crate::{
     auth::{decode_jwt, hash_password, issue_jwt, verify_password, JwtKeys},
     error::{AppError, AppResult},
-    models::{Period, ScheduleRole},
+    models::{Period, ScheduleRole, User},
     repo::{NewSchedule, NewShift, NewShiftComment, NewTemplate, NewUser, Repo},
 };
 use axum::{
@@ -48,7 +48,11 @@ impl AuthUser {
         let claims = decode_jwt(token, &state.jwt)?;
         let user_id = Uuid::parse_str(&claims.sub).map_err(|_| AppError::Unauthorized)?;
         // Ensure user still exists
-        let user = state.repo.get_user(user_id).await?.ok_or(AppError::Unauthorized)?;
+        let user = state
+            .repo
+            .get_user(user_id)
+            .await?
+            .ok_or(AppError::Unauthorized)?;
         Ok(Self {
             id: user.id,
             is_superadmin: user.is_superadmin,
@@ -79,7 +83,10 @@ pub fn build_router(state: AppState) -> Router {
                 .route("/auth/login", post(login))
                 .route("/me", get(me))
                 .route("/schedules", get(list_schedules).post(create_schedule))
-                .route("/schedules/:schedule_id/members", post(add_member))
+                .route(
+                    "/schedules/:schedule_id/members",
+                    get(list_members).post(add_member),
+                )
                 .route(
                     "/schedules/:schedule_id/members/:user_id/role",
                     post(set_member_role),
@@ -90,7 +97,10 @@ pub fn build_router(state: AppState) -> Router {
                 )
                 .route("/shifts/:shift_id/assign", post(assign_shift))
                 .route("/shifts/:shift_id/comments", post(add_shift_comment))
-                .route("/schedules/:schedule_id/templates", get(list_templates).post(create_template))
+                .route(
+                    "/schedules/:schedule_id/templates",
+                    get(list_templates).post(create_template),
+                )
                 .route(
                     "/schedules/:schedule_id/templates/:template_id/apply",
                     post(apply_template),
@@ -117,7 +127,10 @@ struct AuthResponse {
     token: String,
 }
 
-async fn register(State(state): State<AppState>, Json(req): Json<AuthRequest>) -> AppResult<Json<AuthResponse>> {
+async fn register(
+    State(state): State<AppState>,
+    Json(req): Json<AuthRequest>,
+) -> AppResult<Json<AuthResponse>> {
     let email = req.email.trim().to_lowercase();
     if email.is_empty() || req.password.len() < 8 {
         return Err(AppError::BadRequest(
@@ -140,7 +153,10 @@ async fn register(State(state): State<AppState>, Json(req): Json<AuthRequest>) -
     Ok(Json(AuthResponse { token }))
 }
 
-async fn login(State(state): State<AppState>, Json(req): Json<AuthRequest>) -> AppResult<Json<AuthResponse>> {
+async fn login(
+    State(state): State<AppState>,
+    Json(req): Json<AuthRequest>,
+) -> AppResult<Json<AuthResponse>> {
     let email = req.email.trim().to_lowercase();
     let Some((user, password_hash)) = state.repo.find_user_by_email(&email).await? else {
         return Err(AppError::Unauthorized);
@@ -154,11 +170,19 @@ async fn login(State(state): State<AppState>, Json(req): Json<AuthRequest>) -> A
 
 async fn me(State(state): State<AppState>, headers: HeaderMap) -> AppResult<impl IntoResponse> {
     let au = AuthUser::from_headers(&state, &headers).await?;
-    let user = state.repo.get_user(au.id).await?.ok_or(AppError::Unauthorized)?;
+    let user = state
+        .repo
+        .get_user(au.id)
+        .await?
+        .ok_or(AppError::Unauthorized)?;
     Ok(Json(user))
 }
 
-async fn require_member_or_superadmin(state: &AppState, au: &AuthUser, schedule_id: Uuid) -> AppResult<ScheduleRole> {
+async fn require_member_or_superadmin(
+    state: &AppState,
+    au: &AuthUser,
+    schedule_id: Uuid,
+) -> AppResult<ScheduleRole> {
     if au.is_superadmin {
         return Ok(ScheduleRole::Admin);
     }
@@ -169,7 +193,11 @@ async fn require_member_or_superadmin(state: &AppState, au: &AuthUser, schedule_
         .ok_or(AppError::Forbidden)
 }
 
-async fn require_admin_or_superadmin(state: &AppState, au: &AuthUser, schedule_id: Uuid) -> AppResult<()> {
+async fn require_admin_or_superadmin(
+    state: &AppState,
+    au: &AuthUser,
+    schedule_id: Uuid,
+) -> AppResult<()> {
     if au.is_superadmin {
         return Ok(());
     }
@@ -184,7 +212,10 @@ async fn require_admin_or_superadmin(state: &AppState, au: &AuthUser, schedule_i
     Ok(())
 }
 
-async fn list_schedules(State(state): State<AppState>, headers: HeaderMap) -> AppResult<impl IntoResponse> {
+async fn list_schedules(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> AppResult<impl IntoResponse> {
     let au = AuthUser::from_headers(&state, &headers).await?;
     let schedules = state.repo.list_schedules_for_user(au.id).await?;
     Ok(Json(schedules))
@@ -224,6 +255,27 @@ struct AddMemberRequest {
     role: ScheduleRole,
 }
 
+#[derive(Debug, Serialize)]
+struct MemberWithRole {
+    user: User,
+    role: ScheduleRole,
+}
+
+async fn list_members(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(schedule_id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let au = AuthUser::from_headers(&state, &headers).await?;
+    require_member_or_superadmin(&state, &au, schedule_id).await?;
+    let members = state.repo.list_schedule_members(schedule_id).await?;
+    let response: Vec<MemberWithRole> = members
+        .into_iter()
+        .map(|(user, role)| MemberWithRole { user, role })
+        .collect();
+    Ok(Json(response))
+}
+
 async fn add_member(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -237,7 +289,10 @@ async fn add_member(
     let Some((user, _)) = state.repo.find_user_by_email(&email).await? else {
         return Err(AppError::BadRequest("user email not found".to_string()));
     };
-    state.repo.add_member(schedule_id, user.id, req.role).await?;
+    state
+        .repo
+        .add_member(schedule_id, user.id, req.role)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -254,7 +309,10 @@ async fn set_member_role(
 ) -> AppResult<impl IntoResponse> {
     let au = AuthUser::from_headers(&state, &headers).await?;
     require_admin_or_superadmin(&state, &au, schedule_id).await?;
-    state.repo.set_member_role(schedule_id, user_id, req.role).await?;
+    state
+        .repo
+        .set_member_role(schedule_id, user_id, req.role)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -325,7 +383,11 @@ async fn assign_shift(
     Json(req): Json<AssignShiftRequest>,
 ) -> AppResult<impl IntoResponse> {
     let au = AuthUser::from_headers(&state, &headers).await?;
-    let shift = state.repo.get_shift(shift_id).await?.ok_or(AppError::NotFound)?;
+    let shift = state
+        .repo
+        .get_shift(shift_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
 
     let role = require_member_or_superadmin(&state, &au, shift.schedule_id).await?;
     let target = req.assigned_user_id.unwrap_or(au.id);
@@ -351,14 +413,15 @@ async fn add_shift_comment(
     Json(req): Json<AddCommentRequest>,
 ) -> AppResult<impl IntoResponse> {
     let au = AuthUser::from_headers(&state, &headers).await?;
-    let shift = state.repo.get_shift(shift_id).await?.ok_or(AppError::NotFound)?;
+    let shift = state
+        .repo
+        .get_shift(shift_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
     let role = require_member_or_superadmin(&state, &au, shift.schedule_id).await?;
 
     // Only assigned user or admins can comment.
-    if !au.is_superadmin
-        && role != ScheduleRole::Admin
-        && shift.assigned_user_id != Some(au.id)
-    {
+    if !au.is_superadmin && role != ScheduleRole::Admin && shift.assigned_user_id != Some(au.id) {
         return Err(AppError::Forbidden);
     }
     if req.body.trim().is_empty() {
@@ -441,7 +504,11 @@ async fn apply_template(
     let au = AuthUser::from_headers(&state, &headers).await?;
     require_admin_or_superadmin(&state, &au, schedule_id).await?;
 
-    let template = state.repo.get_template(template_id).await?.ok_or(AppError::NotFound)?;
+    let template = state
+        .repo
+        .get_template(template_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
     if template.schedule_id != schedule_id {
         return Err(AppError::Forbidden);
     }
@@ -469,7 +536,7 @@ async fn apply_template(
         let start_naive = day.and_time(start_t);
         let mut end_naive = day.and_time(end_t);
         if end_naive <= start_naive {
-            end_naive = end_naive + chrono::Duration::days(1);
+            end_naive += chrono::Duration::days(1);
         }
 
         let starts_at = DateTime::<Utc>::from_naive_utc_and_offset(start_naive, Utc);

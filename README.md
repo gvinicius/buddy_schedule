@@ -198,4 +198,4 @@ podman-compose -f podman-compose.yml down -v
 
 ## License
 
-[Add your license here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

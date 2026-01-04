@@ -1,3 +1,31 @@
+:root {
+    /* Dark mode (default) */
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a26;
+    --bg-tertiary: #2a2a3a;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --accent: #4a9eff;
+    --accent-hover: #3a8eef;
+    --border: #2a2a3a;
+    --error: #d32f2f;
+    --success: #2e7d32;
+}
+
+[data-theme="light"] {
+    /* Light mode */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e0e0e0;
+    --text-primary: #1a1a26;
+    --text-secondary: #666666;
+    --accent: #1976d2;
+    --accent-hover: #1565c0;
+    --border: #e0e0e0;
+    --error: #d32f2f;
+    --success: #2e7d32;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -6,9 +34,10 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: #0f0f1a;
-    color: #e0e0e0;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     min-height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 #app {
@@ -18,17 +47,33 @@ body {
 }
 
 header {
-    background: #1a1a26;
+    background: var(--bg-secondary);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #2a2a3a;
+    border-bottom: 1px solid var(--border);
 }
 
 header h1 {
     font-size: 1.5rem;
-    color: #4a9eff;
+    color: var(--accent);
+}
+
+#theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#theme-toggle:hover {
+    background: var(--bg-tertiary);
 }
 
 #auth-status {
@@ -38,11 +83,11 @@ header h1 {
 }
 
 #user-email {
-    color: #a0a0a0;
+    color: var(--text-secondary);
 }
 
 button {
-    background: #4a9eff;
+    background: var(--accent);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -53,11 +98,11 @@ button {
 }
 
 button:hover {
-    background: #3a8eef;
+    background: var(--accent-hover);
 }
 
 button:disabled {
-    background: #2a2a3a;
+    background: var(--bg-tertiary);
     cursor: not-allowed;
 }
 
@@ -70,15 +115,15 @@ button:disabled {
     max-width: 400px;
     width: 100%;
     margin: auto;
-    background: #1a1a26;
+    background: var(--bg-secondary);
     padding: 2rem;
     border-radius: 8px;
-    border: 1px solid #2a2a3a;
+    border: 1px solid var(--border);
 }
 
 .login-container h2 {
     margin-bottom: 1.5rem;
-    color: #4a9eff;
+    color: var(--accent);
 }
 
 .login-container form {
@@ -87,22 +132,24 @@ button:disabled {
     gap: 1rem;
 }
 
-.login-container input {
+.login-container input,
+.login-container select {
     padding: 0.75rem;
-    background: #0f0f1a;
-    border: 1px solid #2a2a3a;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
     border-radius: 4px;
-    color: #e0e0e0;
+    color: var(--text-primary);
     font-size: 1rem;
 }
 
-.login-container input:focus {
+.login-container input:focus,
+.login-container select:focus {
     outline: none;
-    border-color: #4a9eff;
+    border-color: var(--accent);
 }
 
 .login-container a {
-    color: #4a9eff;
+    color: var(--accent);
     text-decoration: none;
 }
 
@@ -117,15 +164,15 @@ button:disabled {
 
 #sidebar {
     width: 250px;
-    background: #1a1a26;
-    border-right: 1px solid #2a2a3a;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
     padding: 1rem;
     overflow-y: auto;
 }
 
 #sidebar h3 {
     margin-bottom: 1rem;
-    color: #4a9eff;
+    color: var(--accent);
 }
 
 #sidebar button {
@@ -140,19 +187,20 @@ button:disabled {
 #schedule-list li {
     padding: 0.75rem;
     margin-bottom: 0.5rem;
-    background: #0f0f1a;
+    background: var(--bg-primary);
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 #schedule-list li:hover {
-    background: #2a2a3a;
+    background: var(--bg-tertiary);
 }
 
 #schedule-list li.active {
-    background: #2a4a6a;
-    border-left: 3px solid #4a9eff;
+    background: var(--accent);
+    color: white;
+    border-left: 3px solid var(--accent-hover);
 }
 
 #content {
@@ -165,7 +213,7 @@ button:disabled {
     width: 100%;
     height: 100%;
     display: block;
-    background: #0f0f1a;
+    background: var(--bg-primary);
 }
 
 #schedule-view {
@@ -176,12 +224,210 @@ button:disabled {
     bottom: 0;
     padding: 2rem;
     overflow-y: auto;
-    background: rgba(15, 15, 26, 0.95);
+    background: var(--bg-primary);
+}
+
+.schedule-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.schedule-actions {
+    display: flex;
+    gap: 1rem;
 }
 
 #schedule-view h2 {
-    margin-bottom: 1rem;
-    color: #4a9eff;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+}
+
+#schedule-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+#calendar-container {
+    margin-top: 2rem;
+}
+
+.calendar-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+#current-week {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.calendar-controls button {
+    padding: 0.5rem 1rem;
+}
+
+#calendar-grid {
+    display: grid;
+    grid-template-columns: 120px repeat(7, 1fr);
+    gap: 0;
+    background: var(--border);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-header-row {
+    display: contents;
+}
+
+.calendar-day-header {
+    background: var(--bg-secondary);
+    padding: 1rem 0.75rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--accent);
+    border-bottom: 2px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+
+.calendar-day-header:last-child {
+    border-right: none;
+}
+
+.day-name {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+    opacity: 0.8;
+}
+
+.day-date {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.calendar-period-row {
+    display: contents;
+}
+
+.calendar-period-label {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-right: 2px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    min-width: 120px;
+}
+
+.calendar-cell {
+    background: var(--bg-primary);
+    min-height: 100px;
+    padding: 0.75rem;
+    position: relative;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.calendar-cell:last-child {
+    border-right: none;
+}
+
+.calendar-cell.editable-cell {
+    cursor: text;
+    outline: none;
+}
+
+.calendar-cell.editable-cell:focus {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.calendar-cell {
+    cursor: pointer;
+}
+
+.calendar-cell:hover {
+    background: var(--bg-tertiary);
+}
+
+.calendar-cell.empty {
+    color: var(--text-secondary);
+}
+
+.empty-cell-hint {
+    color: var(--text-secondary);
+    font-style: italic;
+    opacity: 0.5;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.calendar-cell.has-shift {
+    padding: 0.5rem;
+}
+
+.shift-time-display {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+
+.shift-user-display {
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.calendar-cell.assigned {
+    background: var(--accent);
+    color: white;
+    font-weight: 500;
+}
+
+.calendar-cell.assigned:focus {
+    background: var(--accent-hover);
+}
+
+.calendar-shift {
+    background: var(--accent);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.calendar-shift:hover {
+    opacity: 0.9;
+}
+
+.shift-time {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.shift-assigned {
+    font-size: 0.75rem;
+    opacity: 0.9;
 }
 
 #shifts-container {
@@ -189,15 +435,15 @@ button:disabled {
 }
 
 .shift-card {
-    background: #1a1a26;
-    border: 1px solid #2a2a3a;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
     border-radius: 4px;
     padding: 1rem;
     margin-bottom: 1rem;
 }
 
 .shift-card h4 {
-    color: #4a9eff;
+    color: var(--accent);
     margin-bottom: 0.5rem;
 }
 
@@ -205,7 +451,7 @@ button:disabled {
     position: fixed;
     top: 1rem;
     right: 1rem;
-    background: #d32f2f;
+    background: var(--error);
     color: white;
     padding: 1rem;
     border-radius: 4px;
@@ -217,10 +463,143 @@ button:disabled {
     position: fixed;
     top: 1rem;
     right: 1rem;
-    background: #2e7d32;
+    background: var(--success);
     color: white;
     padding: 1rem;
     border-radius: 4px;
     max-width: 400px;
     z-index: 1000;
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal[style*="display: flex"],
+.modal.show {
+    display: flex !important;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--accent);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 2rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: auto;
+    height: auto;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+    background: transparent;
+}
+
+#new-schedule-form {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-group a {
+    color: var(--accent);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.form-group a:hover {
+    background: var(--bg-tertiary);
+    text-decoration: underline;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+.form-actions button[type="button"] {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.form-actions button[type="button"]:hover {
+    background: var(--border);
 }
