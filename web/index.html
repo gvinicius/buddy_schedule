@@ -11,12 +11,13 @@
         <header>
             <h1>Buddy Schedule</h1>
             <div id="auth-status">
+                <button id="theme-toggle" title="Toggle dark/light mode">🌓</button>
                 <span id="user-email"></span>
                 <button id="logout-btn" style="display: none;">Logout</button>
             </div>
         </header>
 
-        <div id="login-screen" class="screen">
+        <div id="login-screen" class="screen" style="display: none;">
             <div class="login-container">
                 <h2>Login</h2>
                 <form id="login-form">
@@ -50,11 +51,128 @@
             <main id="content">
                 <canvas id="render-canvas"></canvas>
                 <div id="schedule-view" style="display: none;">
-                    <h2 id="schedule-name"></h2>
-                    <div id="schedule-info"></div>
-                    <div id="shifts-container"></div>
+                    <div class="schedule-header">
+                        <div>
+                            <h2 id="schedule-name"></h2>
+                            <div id="schedule-info"></div>
+                        </div>
+                        <div class="schedule-actions">
+                            <button id="add-member-btn">+ Add Member</button>
+                        </div>
+                    </div>
+                    <div id="calendar-container">
+                        <div class="calendar-controls">
+                            <button id="prev-week-btn">← Previous</button>
+                            <span id="current-week"></span>
+                            <button id="next-week-btn">Next →</button>
+                        </div>
+                        <div id="calendar-grid"></div>
+                    </div>
+                    <div id="shifts-container" style="display: none;">
+                        <h3>Shifts</h3>
+                        <div id="shifts-list"></div>
+                    </div>
                 </div>
             </main>
+        </div>
+
+        <!-- New Schedule Modal -->
+        <div id="new-schedule-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Create New Schedule</h2>
+                    <button class="modal-close" id="close-modal">&times;</button>
+                </div>
+                <form id="new-schedule-form">
+                    <div class="form-group">
+                        <label for="schedule-name-input">Schedule Name</label>
+                        <input type="text" id="schedule-name-input" placeholder="e.g., Care Rota" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject-type-select">Subject Type</label>
+                        <select id="subject-type-select" required>
+                            <option value="">Select type...</option>
+                            <option value="person">Person</option>
+                            <option value="pet">Pet</option>
+                            <option value="family">Family</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject-name-input">Subject Name</label>
+                        <input type="text" id="subject-name-input" placeholder="e.g., Max, The Smiths" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancel-schedule-btn">Cancel</button>
+                        <button type="submit">Create Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Shift Modal -->
+        <div id="edit-shift-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Shift</h2>
+                    <button class="modal-close" id="close-shift-modal">&times;</button>
+                </div>
+                <form id="edit-shift-form">
+                    <div class="form-group">
+                        <label for="shift-start-time">Start Time</label>
+                        <input type="time" id="shift-start-time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="shift-end-time">End Time</label>
+                        <input type="time" id="shift-end-time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="shift-user-select">Assign To</label>
+                        <select id="shift-user-select">
+                            <option value="">Unassigned</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="shift-notes">Notes</label>
+                        <textarea id="shift-notes" rows="3" placeholder="Add notes or comments..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <a id="google-calendar-link" href="#" target="_blank" style="display: none;">📅 Add to Google Calendar</a>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="delete-shift-btn" style="background: var(--error);">Delete</button>
+                        <button type="button" id="cancel-shift-btn">Cancel</button>
+                        <button type="submit">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Member Modal -->
+        <div id="add-member-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add Member to Schedule</h2>
+                    <button class="modal-close" id="close-member-modal">&times;</button>
+                </div>
+                <form id="add-member-form">
+                    <div class="form-group">
+                        <label for="member-email-input">User Email</label>
+                        <input type="email" id="member-email-input" placeholder="user@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="member-role-select">Role</label>
+                        <select id="member-role-select" required>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancel-member-btn">Cancel</button>
+                        <button type="submit">Add Member</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div id="error-message" class="error" style="display: none;"></div>
